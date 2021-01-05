@@ -1,0 +1,67 @@
+/*this codes uses a macro previously published to analyze tubules in cardiomyocytes (Pasqualin et al., 2014). It runs the macro on several images (frames) so that we can analyze the tubules over time and it makes a movie of the skeletonized images. In addition, all results are saved into one .txt file in their order of appearance.*/
+
+//global variables
+var path= " Data_path";
+var name= "picture_name.tif"
+//creating 1 table
+table="[Combined Results]";
+run("Table...", "name="+table+" width=450 height=500");
+results_merge=""; //variable that will be filled with all results
+//preparing the image, zstack and 8 bit
+run("Z Project...", "start=1 stop=5 projection=[Max Intensity] all");
+run("8-bit"); 
+//code for the skeleton analysis and saving the result files
+Stack.getDimensions(width, height, channels, slices, frames); 
+for (i=1; i<frames+1; i++){
+     	   Stack.setFrame(i); 
+		index=i;
+		run("Duplicate...", " ");
+		run("Subtract Background...", "rolling=15");
+		run("Enhance Local Contrast (CLAHE)", "blocksize=20 histogram=256 maximum=2 mask=*None*");
+		run("Smooth");
+		run("8-bit");
+	//run("Statistical Region Merging", "q=100 showaverages");
+		setThreshold(110, 255);
+		run("Convert to Mask");
+		run("Skeletonize (2D/3D)");
+   		saveAs("Tiff", path+"\\frames\\frame_Skeleton"+ index);
+   		run("Analyze Skeleton (2D/3D)", "prune=none show original_image=test_xy.tif");
+   		run("Summarize");
+   		String.copyResults;//these 3 lines are for the table
+       	 resultati=String.paste;  
+       	 results_merge=results_merge+resultati;
+        	selectWindow("Results");
+   		saveAs("Results", path+"\\Results\\Results1\\frame_Skeleton_Results"+ index+".xls");
+   		selectWindow("Results");
+   		selectWindow("Branch information");
+   		run("Summarize");
+	saveAs("Measurements",path+"\\Results\\branch_information\\_Skeleton_Results_branch"+ index+".xls");
+		selectWindow("Results");
+		run("Close");
+		selectWindow("_Skeleton_Results_branch"+index+".xls");
+		run("Close");
+		selectWindow("frame_Skeleton"+index+".tif");
+		run("Close");
+		selectWindow("Tagged skeleton");
+		run("Close");
+	//close();
+		selectWindow(name);
+   	print(i);
+        }
+print(table,String.getResultsHeadings);
+print(table,results_merge); //this table contains all results 
+//code for making a movie of the single skeleton images        
+open(path+"\\frames\\frame_Skeleton1.tif")
+dir = getDirectory(path+"\\frames");
+close();
+list = getFileList(dir);
+for (i=0; i<list.length; i++){
+      	  if (File.isDirectory(dir+list[i])){}
+      	  else
+       	 open(dir+list[i]);
+} 
+run("Images to Stack", "name=Stack title=[] use");
+saveAs(path+"\\frames\\SkeletonMovie.tif")
+close();
+
+
